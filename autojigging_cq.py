@@ -3,6 +3,7 @@ import numpy as np
 import vtk
 import SimpleITK as sitk
 import cadquery as cq
+import argparse
 from typing import cast
 from stl.mesh import Mesh
 
@@ -110,8 +111,6 @@ def write_stl(poly_data, output_stl_path):
     writer.SetFileName(output_stl_path)
     writer.Write()
     return output_stl_path
-
-
 
 def toVectors(points):
     if isinstance(next(iter(points)), cq.Vector):
@@ -247,9 +246,22 @@ def assemble_jig(nifti_path, output_stl_path):
        
     return assembly
 
+def main(nifti, mold_stl_path, jig_stl_path):
+    nifti = '/Volumes/Siren/Prostate_data/573/MRI/Processed/prostate_mask.nii.gz'
+    polydata = prep_object(nifti)
+    write_stl(polydata, mold_stl_path)
+    resulting_assembly = assemble_jig(nifti, '/tmp/stl.stl')
+    resulting_assembly.val().exportStl(jig_stl_path)
 
-nifti = '/Volumes/Siren/Prostate_data/573/MRI/Processed/prostate_mask.nii.gz'
-polydata = prep_object(nifti)
-write_stl(polydata, '/Volumes/Siren/Prostate_data/573/MRI/Processed/autojigger_mold.stl')
-resulting_assembly = assemble_jig(nifti, '/tmp/stl.stl')
-resulting_assembly.val().exportStl('/Volumes/Siren/Prostate_data/574/MRI/Processed/573_autojigger_slicer.stl')
+if __name__ == '__main__':    
+    default_nifti = '/Volumes/Siren/Prostate_data/573/MRI/Processed/prostate_mask.nii.gz'
+    default_mold_stl_path = '/Volumes/Siren/Prostate_data/573/MRI/Processed/autojigger_mold.stl'
+    default_jig_stl_path = '/Volumes/Siren/Prostate_data/573/MRI/Processed/autojigger_slicer.stl'
+
+    parser = argparse.ArgumentParser(description='Process NIfTI file and output STLs.')
+    parser.add_argument('nifti', nargs='?', type=str, default=default_nifti, help='Path to the input NIfTI file')
+    parser.add_argument('mold_stl_path', nargs='?', type=str, default=default_mold_stl_path, help='Path to the output STL file')
+    parser.add_argument('jig_stl_path', nargs='?', type=str, default=default_jig_stl_path, help='Path to the output STL file')
+
+    args = parser.parse_args() 
+    main(args.nifti, args.mold_stl_path, args.jig_stl_path)

@@ -1,7 +1,6 @@
 import nibabel as nib
 import numpy as np
 import vtk
-import SimpleITK as sitk
 import cadquery as cq
 import argparse
 from typing import cast

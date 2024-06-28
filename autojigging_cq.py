@@ -233,8 +233,7 @@ def assemble_jig(nifti_path, output_stl_path):
 
     for slots in range(start_z, end_z, step_z):
         if slots > 0:
-            slicer = slicer.translate((0,0, slots/100))
-            assembly = assembly.cut(slicer)
+            assembly = assembly.cut(slicer.translate((0,0, slots/100)))
 
     start_y = 0
     end_y = int(np.round((jig_size[1]+final_obj_y), 2) * 100)

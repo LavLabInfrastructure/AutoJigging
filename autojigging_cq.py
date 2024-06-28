@@ -238,9 +238,12 @@ def assemble_jig(nifti_path, output_stl_path):
     start_y = 0
     end_y = int(np.round((jig_size[1]+final_obj_y), 2) * 100)
 
-    for i in range(start_y, end_y, 100):
-        mold = mold.translate((0,1,0))
-        assembly = assembly.cut(mold)
+    mold_assembly = cq.Assembly(mold)
+    for i in range(start_y, end_y):
+        mold_assembly = mold_assembly.add(mold.translate((0, i, 0)))
+    mold = mold_assembly.toCompound()
+
+    assembly = assembly.cut(mold)
        
     return assembly
 

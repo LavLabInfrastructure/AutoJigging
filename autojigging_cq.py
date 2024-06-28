@@ -1,7 +1,6 @@
 import nibabel as nib
 import numpy as np
 import vtk
-import SimpleITK as sitk
 import cadquery as cq
 import argparse
 from typing import cast
@@ -86,7 +85,7 @@ def create_translator(scaler_connect, translation):
 
     return translation_filter
 
-def prep_object(nifti_path: str) -> vtk.vtkPolyData:
+def prep_mold(nifti_path: str) -> vtk.vtkPolyData:
     reader = create_reader(nifti_path)
     surf = create_surface_extractor(reader.GetOutputPort())
     smoother = create_smoother(surf.GetOutputPort())
@@ -133,7 +132,7 @@ def makePolyhedron(points, faces) -> cq.Solid:
     )
 
 def find_jig_bounds(nifti_path):
-    poly_data = prep_object(nifti_path)
+    poly_data = prep_mold(nifti_path)
     final_obj_bounds = find_bounds(poly_data)
     jig_modifiers = find_jig_modifiers(nifti_path)
 
@@ -209,18 +208,18 @@ def import_stl(stl_path:str):
     faces = [(i, i + 1, i + 2) for i in range(0, len(points), 3)]
     return makePolyhedron(points, faces)
 
-def process_object(nifti_path, output_stl_path):
-    poly_data = prep_object(nifti_path)
+def process_mold(nifti_path, output_stl_path):
+    poly_data = prep_mold(nifti_path)
     stl_path = write_stl(poly_data, output_stl_path)
     final_obj_bounds = find_bounds(poly_data)
     final_obj_y = final_obj_bounds[3] - final_obj_bounds[2]
-    stl_object = import_stl(stl_path)
-    return stl_object, final_obj_y
+    stl_mold = import_stl(stl_path)
+    return stl_mold, final_obj_y
 
 def assemble_jig(nifti_path, output_stl_path):
     jig = process_jig(nifti_path)
     slicer = process_slicer(nifti_path)
-    object, final_obj_y = process_object(nifti_path, output_stl_path)
+    mold, final_obj_y = process_mold(nifti_path, output_stl_path)
 
     slice_thickness = find_slice_thickness(nifti_path)
     jig_size = find_jig_size(nifti_path)
@@ -239,15 +238,18 @@ def assemble_jig(nifti_path, output_stl_path):
     start_y = 0
     end_y = int(np.round((jig_size[1]+final_obj_y), 2) * 100)
 
-    for i in range(start_y, end_y, 100):
-        object = object.translate((0,1,0))
-        assembly = assembly.cut(object)
+    mold_assembly = cq.Assembly(mold)
+    for i in range(start_y, end_y):
+        mold_assembly = mold_assembly.add(mold.translate((0, i, 0)))
+    mold = mold_assembly.toCompound()
+
+    assembly = assembly.cut(mold)
        
     return assembly
 
 def main(nifti, mold_stl_path, jig_stl_path):
     nifti = '/Volumes/Siren/Prostate_data/573/MRI/Processed/prostate_mask.nii.gz'
-    polydata = prep_object(nifti)
+    polydata = prep_mold(nifti)
     write_stl(polydata, mold_stl_path)
     resulting_assembly = assemble_jig(nifti, '/tmp/stl.stl')
     resulting_assembly.val().exportStl(jig_stl_path)

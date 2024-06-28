@@ -223,7 +223,7 @@ def assemble_jig(nifti_path, output_stl_path):
 
     slice_thickness = find_slice_thickness(nifti_path)
     jig_size = find_jig_size(nifti_path)
-    z_gap = slice_thickness - SLICINGZ
+    z_gap = slice_thickness
     
     assembly = cq.Workplane("XY").add(jig)
 
